@@ -1,0 +1,115 @@
+name: Deploy DevBox in Microsoft hosted netw
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      resourceGroupName:
+        description: 'Resource Group Name'
+        required: true
+      devCenterName:
+        description: 'Dev Center Name'
+        required: true
+      projectName:
+        description: 'Project Name'
+        required: true
+      location:
+        description: 'Azure Region'
+        required: true
+        default: 'eastus'
+      devBoxDefinitionName:
+        description: 'DevBox Definition Name'
+        required: true
+        default: 'VS2022WIN11'
+      poolName:
+        description: 'Pool Name'
+        required: true
+        default: 'VS2022Pool'
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AZURE_RESOURCE_GROUP: ${{ github.event.inputs.resourceGroupName }}
+  DEVCENTER_NAME: ${{ github.event.inputs.devCenterName }}
+  PROJECT_NAME: ${{ github.event.inputs.projectName }}
+  LOCATION: ${{ github.event.inputs.location }}
+  DEVBOX_DEFINITION_NAME: ${{ github.event.inputs.devBoxDefinitionName }}
+  POOL_NAME: ${{ github.event.inputs.poolName }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Create resource group if it doesn't exist
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            if [ $(az group exists --name ${{ env.AZURE_RESOURCE_GROUP }}) = false ]; then
+              az group create --name ${{ env.AZURE_RESOURCE_GROUP }} --location ${{ env.LOCATION }}
+            fi
+
+      - name: Deploy Dev Center
+        uses: azure/arm-deploy@v1
+        id: devcenter-deployment
+        with:
+          resourceGroupName: ${{ env.AZURE_RESOURCE_GROUP }}
+          template: ./Templates/ARM/devcenter.json
+          parameters: ./Templates/ARM/devcenter.parameters.json devCenterName=${{ env.DEVCENTER_NAME }} location=${{ env.LOCATION }}
+          deploymentName: devcenter-deployment-${{ github.run_number }}
+
+      - name: Wait for Dev Center to be created
+        run: sleep 120
+
+      - name: Deploy DevBox Definition
+        uses: azure/arm-deploy@v1
+        id: devbox-definition-deployment
+        with:
+          resourceGroupName: ${{ env.AZURE_RESOURCE_GROUP }}
+          template: ./Templates/ARM/devbox_definition.json
+          parameters: ./Templates/ARM/devbox_definition.parameters.json devCenterName=${{ env.DEVCENTER_NAME }} devBoxDefinitionName=${{ env.DEVBOX_DEFINITION_NAME }} location=${{ env.LOCATION }}
+          deploymentName: devbox-definition-deployment-${{ github.run_number }}
+
+      - name: Deploy Dev Center Project
+        uses: azure/arm-deploy@v1
+        id: project-deployment
+        with:
+          resourceGroupName: ${{ env.AZURE_RESOURCE_GROUP }}
+          template: ./Templates/ARM/devcenter_project.json
+          parameters: ./Templates/ARM/devcenter_project.parameters.json projectName=${{ env.PROJECT_NAME }} devCenterName=${{ env.DEVCENTER_NAME }} location=${{ env.LOCATION }}
+          deploymentName: project-deployment-${{ github.run_number }}
+
+      - name: Wait for Project to be created
+        run: sleep 60
+
+      - name: Deploy DevBox Pool
+        uses: azure/arm-deploy@v1
+        id: devbox-pool-deployment
+        with:
+          resourceGroupName: ${{ env.AZURE_RESOURCE_GROUP }}
+          template: ./Templates/ARM/devboxpool.json
+          parameters: ./Templates/ARM/devboxpool.parameters.json projectName=${{ env.PROJECT_NAME }} poolName=${{ env.POOL_NAME }} devBoxDefinitionName=${{ env.DEVBOX_DEFINITION_NAME }} location=${{ env.LOCATION }} networkConnectionName=managedNetwork
+          deploymentName: devbox-pool-deployment-${{ github.run_number }}
+
+      - name: Deployment summary
+        run: |
+          echo "✅ Deployment completed successfully"
+          echo "Resource Group: ${{ env.AZURE_RESOURCE_GROUP }}"
+          echo "Dev Center: ${{ env.DEVCENTER_NAME }}"
+          echo "Project: ${{ env.PROJECT_NAME }}"
+          echo "DevBox Definition: ${{ env.DEVBOX_DEFINITION_NAME }}"
+          echo "DevBox Pool: ${{ env.POOL_NAME }}"

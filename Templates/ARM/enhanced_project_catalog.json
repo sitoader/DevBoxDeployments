@@ -1,0 +1,125 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "projectName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the existing project where the catalog will be added."
+      }
+    },
+    "catalogName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the catalog to add to the project."
+      }
+    },
+    "gitHubRepoUri": {
+      "type": "string",
+      "metadata": {
+        "description": "The GitHub repository URI for the catalog. Format: https://github.com/{org}/{repo}"
+      }
+    },
+    "gitHubBranch": {
+      "type": "string",
+      "defaultValue": "main",
+      "metadata": {
+        "description": "The branch of the GitHub repository to use."
+      }
+    },
+    "gitHubPath": {
+      "type": "string",
+      "defaultValue": "/",
+      "metadata": {
+        "description": "The path within the GitHub repository to use."
+      }
+    },
+    "authType": {
+      "type": "string",
+      "defaultValue": "None",
+      "allowedValues": [
+        "None",
+        "PAT",
+        "OAuth"
+      ],
+      "metadata": {
+        "description": "Authentication type to use for the GitHub repository. Use 'None' for public repositories."
+      }
+    },
+    "gitHubPatSecretIdentifier": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "The Key Vault secret identifier for the GitHub Personal Access Token. Required only when authType is PAT."
+      }
+    },
+    "syncType": {
+      "type": "string",
+      "defaultValue": "Scheduled",
+      "allowedValues": [
+        "Scheduled",
+        "Manual"
+      ],
+      "metadata": {
+        "description": "How the catalog should be synchronized with the source repository."
+      }
+    },
+    "displayName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Display name for the catalog. If empty, catalogName will be used."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for the catalog resource."
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {
+        "environment": "development",
+        "purpose": "devbox-catalog",
+        "createdBy": "ARM-Template"
+      },
+      "metadata": {
+        "description": "Tags for the catalog resource"
+      }
+    }
+  },
+  "variables": {
+    "effectiveDisplayName": "[if(equals(parameters('displayName'), ''), parameters('catalogName'), parameters('displayName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.DevCenter/projects/catalogs",
+      "apiVersion": "2024-10-01-preview",
+      "name": "[concat(parameters('projectName'), '/', parameters('catalogName'))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "displayName": "[variables('effectiveDisplayName')]",
+        "gitHub": {
+          "uri": "[parameters('gitHubRepoUri')]",
+          "branch": "[parameters('gitHubBranch')]",
+          "path": "[parameters('gitHubPath')]",
+          "secretIdentifier": "[if(equals(parameters('authType'), 'PAT'), parameters('gitHubPatSecretIdentifier'), null())]"
+        },
+        "syncType": "[parameters('syncType')]"
+      }
+    }
+  ],
+  "outputs": {
+    "catalogId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.DevCenter/projects/catalogs', parameters('projectName'), parameters('catalogName'))]"
+    },
+    "catalogName": {
+      "type": "string",
+      "value": "[parameters('catalogName')]"
+    }
+  }
+}

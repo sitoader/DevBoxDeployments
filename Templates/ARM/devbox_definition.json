@@ -1,0 +1,65 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "devBoxDefinitionName": {
+      "type": "string",
+      "defaultValue": "VS2022WIN11",
+      "metadata": {
+        "description": "Name of the Dev Box Definition."
+      }
+    },
+    "devCenterName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the Dev Center."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "swedencentral",
+      "metadata": {
+        "description": "Location for the Dev Box Definition."
+      }
+    },
+    "imageReferenceName": {
+      "type": "string",
+      "defaultValue": "microsoftvisualstudio_visualstudioplustools_vs-2022-ent-general-win10-m365-gen2",
+      "metadata": {
+        "description": "Image reference for the Dev Box."
+      }
+    },
+    "skuName": {
+      "type": "string",
+      "defaultValue": "general_i_8c32gb256ssd_v2",
+      "metadata": {
+        "description": "SKU name for the Dev Box."
+      }
+    },
+    "hibernateSupport": {
+      "type": "string",
+      "defaultValue": "Enabled",
+      "allowedValues": ["Enabled", "Disabled"],
+      "metadata": {
+        "description": "Enable or disable hibernate support."
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.DevCenter/devcenters/devboxdefinitions",
+      "apiVersion": "2025-02-01",
+      "name": "[concat(parameters('devCenterName'), '/', parameters('devBoxDefinitionName'))]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "imageReference": {
+          "id": "[concat(resourceId('Microsoft.DevCenter/devcenters/galleries', parameters('devCenterName'), 'Default'), '/images/', parameters('imageReferenceName'))]"
+        },
+        "sku": {
+          "name": "[parameters('skuName')]"
+        },
+        "hibernateSupport": "[parameters('hibernateSupport')]"
+      }
+    }
+  ]
+}

@@ -1,0 +1,167 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "projectName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the DevCenter project"
+      }
+    },
+    "poolName": {
+      "type": "string",
+      "defaultValue": "CustomNetworkPool",
+      "metadata": {
+        "description": "Name of the DevBox pool"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for the DevBox pool"
+      }
+    },
+    "devBoxDefinitionName": {
+      "type": "string",
+      "defaultValue": "VS2022WIN11",
+      "metadata": {
+        "description": "Name of the DevBox definition to use"
+      }
+    },
+    "networkConnectionName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the network connection to use"
+      }
+    },
+    "localAdministrator": {
+      "type": "string",
+      "defaultValue": "Enabled",
+      "allowedValues": [
+        "Enabled",
+        "Disabled"
+      ],
+      "metadata": {
+        "description": "Whether local administrator access is enabled"
+      }
+    },
+    "stopOnDisconnectStatus": {
+      "type": "string",
+      "defaultValue": "Enabled",
+      "allowedValues": [
+        "Enabled",
+        "Disabled"
+      ],
+      "metadata": {
+        "description": "Whether to stop the DevBox when disconnected"
+      }
+    },
+    "stopOnDisconnectGracePeriodMinutes": {
+      "type": "int",
+      "defaultValue": 60,
+      "metadata": {
+        "description": "Grace period in minutes before stopping the DevBox after disconnection"
+      }
+    },
+    "stopOnNoConnectStatus": {
+      "type": "string",
+      "defaultValue": "Enabled",
+      "allowedValues": [
+        "Enabled",
+        "Disabled"
+      ],
+      "metadata": {
+        "description": "Whether to stop the DevBox when not connected"
+      }
+    },
+    "stopOnNoConnectGracePeriodMinutes": {
+      "type": "int",
+      "defaultValue": 60,
+      "metadata": {
+        "description": "Grace period in minutes before stopping the DevBox when not connected"
+      }
+    },
+    "singleSignOnStatus": {
+      "type": "string",
+      "defaultValue": "Enabled",
+      "allowedValues": [
+        "Enabled",
+        "Disabled"
+      ],
+      "metadata": {
+        "description": "Whether single sign-on is enabled"
+      }
+    },
+    "licenseType": {
+      "type": "string",
+      "defaultValue": "Windows_Client",
+      "allowedValues": [
+        "Windows_Client",
+        "Windows_Server"
+      ],
+      "metadata": {
+        "description": "License type for the DevBox"
+      }
+    },
+    "projectResourceGroup": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().name]",
+      "metadata": {
+        "description": "Resource group where the DevCenter project is deployed"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {
+        "environment": "development",
+        "purpose": "devbox-pool",
+        "createdBy": "ARM-Template",
+        "project": "DevBox"
+      },
+      "metadata": {
+        "description": "Tags for the DevBox pool resource"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.DevCenter/projects/pools",
+      "apiVersion": "2024-10-01-preview",
+      "name": "[concat(parameters('projectName'), '/', parameters('poolName'))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "devBoxDefinitionType": "Reference",
+        "devBoxDefinitionName": "[parameters('devBoxDefinitionName')]",
+        "licenseType": "[parameters('licenseType')]",
+        "localAdministrator": "[parameters('localAdministrator')]",
+        "networkConnectionName": "[parameters('networkConnectionName')]",
+        "stopOnDisconnect": {
+          "status": "[parameters('stopOnDisconnectStatus')]",
+          "gracePeriodMinutes": "[parameters('stopOnDisconnectGracePeriodMinutes')]"
+        },
+        "stopOnNoConnect": {
+          "status": "[parameters('stopOnNoConnectStatus')]",
+          "gracePeriodMinutes": "[parameters('stopOnNoConnectGracePeriodMinutes')]"
+        },
+        "singleSignOnStatus": "[parameters('singleSignOnStatus')]",
+        "displayName": "[parameters('poolName')]"
+      }
+    }
+  ],
+  "outputs": {
+    "poolId": {
+      "type": "string",
+      "value": "[resourceId(parameters('projectResourceGroup'), 'Microsoft.DevCenter/projects/pools', parameters('projectName'), parameters('poolName'))]"
+    },
+    "poolName": {
+      "type": "string",
+      "value": "[parameters('poolName')]"
+    },
+    "networkConnectionName": {
+      "type": "string",
+      "value": "[parameters('networkConnectionName')]"
+    }
+  }
+}

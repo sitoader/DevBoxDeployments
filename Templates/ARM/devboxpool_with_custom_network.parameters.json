@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "projectName": {
+      "value": "DevProject"
+    },
+    "poolName": {
+      "value": "CustomNetworkPool"
+    },
+    "location": {
+      "value": "swedencentral"
+    },
+    "devBoxDefinitionName": {
+      "value": "VS2022WIN11"
+    },
+    "networkConnectionName": {
+      "value": "aad-vnet-connection"
+    },
+    "localAdministrator": {
+      "value": "Enabled"
+    },
+    "stopOnDisconnectStatus": {
+      "value": "Enabled"
+    },
+    "stopOnDisconnectGracePeriodMinutes": {
+      "value": 60
+    },
+    "stopOnNoConnectStatus": {
+      "value": "Enabled"
+    },
+    "stopOnNoConnectGracePeriodMinutes": {
+      "value": 60
+    },
+    "singleSignOnStatus": {
+      "value": "Enabled"
+    },
+    "licenseType": {
+      "value": "Windows_Client"
+    },
+    "projectResourceGroup": {
+      "value": "DevCenterRG"
+    },
+    "tags": {
+      "value": {
+        "environment": "development",
+        "purpose": "devbox-pool",
+        "createdBy": "ARM-Template",
+        "project": "DevBox",
+        "network": "custom"
+      }
+    }
+  }
+}

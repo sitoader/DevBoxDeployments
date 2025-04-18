@@ -1,0 +1,66 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "projectName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the existing project where the catalog will be added."
+      }
+    },
+    "catalogName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the catalog to add to the project."
+      }
+    },
+    "gitHubRepoUri": {
+      "type": "string",
+      "metadata": {
+        "description": "The GitHub repository URI for the catalog. Format: https://github.com/{org}/{repo}"
+      }
+    },
+    "gitHubBranch": {
+      "type": "string",
+      "defaultValue": "main",
+      "metadata": {
+        "description": "The branch of the GitHub repository to use."
+      }
+    },
+    "gitHubPath": {
+      "type": "string",
+      "defaultValue": "/",
+      "metadata": {
+        "description": "The path within the GitHub repository to use."
+      }
+    },
+    "gitHubPatSecretIdentifier": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "The Key Vault secret identifier for the GitHub Personal Access Token. Leave empty for public repositories."
+      }
+    }
+  },
+  "resources": [
+    {
+        "type": "Microsoft.DevCenter/projects/catalogs",
+        "apiVersion": "2025-02-01",
+        "name": "[concat(parameters('projectName'), '/', parameters('catalogName'))]",
+        "properties": {
+            "gitHub": {
+                "uri": "[parameters('gitHubRepoUri')]",
+                "branch": "[parameters('gitHubBranch')]",
+                "path": "[parameters('gitHubPath')]"
+        },
+        "syncType": "Scheduled"
+      }
+    }
+  ],
+  "outputs": {
+    "catalogId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.DevCenter/projects/catalogs', parameters('projectName'), parameters('catalogName'))]"
+    }
+  }
+}

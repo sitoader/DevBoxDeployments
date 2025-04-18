@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "projectName": {
+      "value": "testingproject"
+    },
+    "catalogName": {
+      "value": "devcustomEnvironments"
+    },
+    "gitHubRepoUri": {
+      "value": "https://github.com/sitoader/eShop.git"
+    },
+    "gitHubBranch": {
+      "value": "main"
+    },
+    "gitHubPath": {
+      "value": ".devcenter/catalog/definitions"
+    }
+  }
+}

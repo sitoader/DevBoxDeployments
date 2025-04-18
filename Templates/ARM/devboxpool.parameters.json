@@ -1,0 +1,44 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "projectName": {
+      "value": "myProject"
+    },
+    "poolName": {
+      "value": "VS2022Pool"
+    },
+    "location": {
+      "value": "swedencentral"
+    },
+    "devBoxDefinitionName": {
+      "value": "VS2022WIN11"
+    },
+    "localAdministrator": {
+      "value": "Enabled"
+    },
+    "stopOnDisconnectStatus": {
+      "value": "Enabled"
+    },
+    "stopOnDisconnectGracePeriodMinutes": {
+      "value": 60
+    },
+    "stopOnNoConnectStatus": {
+      "value": "Enabled"
+    },
+    "stopOnNoConnectGracePeriodMinutes": {
+      "value": 60
+    },
+    "singleSignOnStatus": {
+      "value": "Enabled"
+    },
+    "managedVirtualNetworkRegions": {
+      "value": [
+        "swedencentral"
+      ]
+    },
+    "networkConnectionName": {
+      "value": "managedNetwork"
+    }
+  }
+}

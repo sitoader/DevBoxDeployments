@@ -1,0 +1,100 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",  "parameters": {
+    "devCenterName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the DevCenter"
+      }
+    },
+    "connectionName": {
+      "type": "string",
+      "defaultValue": "aad-vnet-connection",
+      "metadata": {
+        "description": "Name of the network connection"
+      }
+    },
+    "vnetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the virtual network to connect to"
+      }
+    },
+    "subnetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the subnet to connect to"
+      }
+    },
+    "vnetResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the resource group where VNet is deployed"
+      }
+    },
+    "domainJoinType": {
+      "type": "string",
+      "defaultValue": "AzureADJoin",
+      "allowedValues": [
+        "AzureADJoin",
+        "HybridAzureADJoin",
+        "None"
+      ],
+      "metadata": {
+        "description": "Domain join type for DevBoxes"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for the network connection"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {
+        "environment": "development",
+        "purpose": "devbox-networking",
+        "createdBy": "ARM-Template"
+      },
+      "metadata": {
+        "description": "Tags for the network connection resource"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.DevCenter/networkConnections",
+      "apiVersion": "2024-10-01-preview",
+      "name": "[parameters('connectionName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",      "properties": {
+        "networkingResourceGroupName": "[concat('MC_', resourceGroup().name, '_', parameters('connectionName'))]",
+        "subnetId": "[resourceId(parameters('vnetResourceGroup'), 'Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]",
+        "domainJoinType": "[parameters('domainJoinType')]"
+      }
+    },
+    {
+      "type": "Microsoft.DevCenter/devcenters/attachednetworks",
+      "apiVersion": "2024-10-01-preview",
+      "name": "[concat(parameters('devCenterName'), '/', parameters('connectionName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.DevCenter/networkConnections', parameters('connectionName'))]"
+      ],
+      "properties": {
+        "networkConnectionId": "[resourceId('Microsoft.DevCenter/networkConnections', parameters('connectionName'))]"
+      }
+    }
+  ],
+  "outputs": {
+    "networkConnectionId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.DevCenter/networkConnections', parameters('connectionName'))]"
+    },
+    "attachedNetworkId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.DevCenter/devcenters/attachednetworks', parameters('devCenterName'), parameters('connectionName'))]"
+    }
+  }
+}

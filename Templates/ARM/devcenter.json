@@ -1,0 +1,66 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "devCenterName": {
+      "type": "string",
+      "defaultValue": "myDevCentertest",
+      "metadata": {
+        "description": "Name of the Dev Center."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "East US",
+      "metadata": {
+        "description": "Location for the Dev Center."
+      }
+    },
+    "catalogItemSyncEnableStatus": {
+      "type": "string",
+      "allowedValues": ["Enabled", "Disabled"],
+      "defaultValue": "Enabled",
+      "metadata": {
+        "description": "Enable or disable catalog item synchronization."
+      }
+    },
+    "microsoftHostedNetworkEnableStatus": {
+      "type": "string",
+      "allowedValues": ["Enabled", "Disabled"],
+      "defaultValue": "Enabled",
+      "metadata": {
+        "description": "Enable or disable Microsoft-hosted network."
+      }
+    },
+    "installAzureMonitorAgentEnableStatus": {
+      "type": "string",
+      "allowedValues": ["Enabled", "Disabled"],
+      "defaultValue": "Enabled",
+      "metadata": {
+        "description": "Enable or disable installation of Azure Monitor agent."
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.DevCenter/devcenters",
+      "apiVersion": "2024-10-01-preview",
+      "name": "[parameters('devCenterName')]",
+      "location": "[parameters('location')]",
+      "identity": {
+          "type": "None"
+      },
+      "properties": {
+          "projectCatalogSettings": {
+              "catalogItemSyncEnableStatus": "[parameters('catalogItemSyncEnableStatus')]"
+          },
+          "networkSettings": {
+              "microsoftHostedNetworkEnableStatus": "[parameters('microsoftHostedNetworkEnableStatus')]"
+          },
+          "devBoxProvisioningSettings": {
+              "installAzureMonitorAgentEnableStatus": "[parameters('installAzureMonitorAgentEnableStatus')]"
+          }
+      }
+    }
+  ]
+}

@@ -1,0 +1,134 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "projectName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the DevCenter project"
+      }
+    },
+    "poolName": {
+      "type": "string",
+      "defaultValue": "VS2022Pool",
+      "metadata": {
+        "description": "Name of the DevBox pool"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "swedencentral",
+      "metadata": {
+        "description": "Location for the DevBox pool"
+      }
+    },
+    "devBoxDefinitionName": {
+      "type": "string",
+      "defaultValue": "VS2022WIN11",
+      "metadata": {
+        "description": "Name of the DevBox definition to use"
+      }
+    },
+    "localAdministrator": {
+      "type": "string",
+      "defaultValue": "Enabled",
+      "allowedValues": [
+        "Enabled",
+        "Disabled"
+      ],
+      "metadata": {
+        "description": "Whether local administrator access is enabled"
+      }
+    },
+    "stopOnDisconnectStatus": {
+      "type": "string",
+      "defaultValue": "Enabled",
+      "allowedValues": [
+        "Enabled",
+        "Disabled"
+      ],
+      "metadata": {
+        "description": "Whether to stop the DevBox when disconnected"
+      }
+    },
+    "stopOnDisconnectGracePeriodMinutes": {
+      "type": "int",
+      "defaultValue": 60,
+      "metadata": {
+        "description": "Grace period in minutes before stopping the DevBox after disconnection"
+      }
+    },
+        "stopOnNoConnectStatus": {
+      "type": "string",
+      "defaultValue": "Enabled",
+      "allowedValues": [
+        "Enabled",
+        "Disabled"
+      ],
+      "metadata": {
+        "description": "Whether to stop the DevBox when disconnected"
+      }
+    },
+    "stopOnNoConnectGracePeriodMinutes": {
+      "type": "int",
+      "defaultValue": 60,
+      "metadata": {
+        "description": "Grace period in minutes before stopping the DevBox after disconnection"
+      }
+    },
+    "singleSignOnStatus": {
+      "type": "string",
+      "defaultValue": "Enabled",
+      "allowedValues": [
+        "Enabled",
+        "Disabled"
+      ],
+      "metadata": {
+        "description": "Whether single sign-on is enabled"
+      }
+    },
+    "managedVirtualNetworkRegions": {
+      "type": "array",
+      "defaultValue": [
+        "swedencentral"
+      ],
+      "metadata": {
+        "description": "Regions for managed virtual network"
+      }
+    },
+    "networkConnectionName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the network connection"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.DevCenter/projects/pools",
+      "apiVersion": "2024-10-01-preview",
+      "name": "[concat(parameters('projectName'), '/', parameters('poolName'))]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "devBoxDefinitionType": "Reference",
+        "devBoxDefinitionName": "[parameters('devBoxDefinitionName')]",
+        "licenseType": "Windows_Client",
+        "localAdministrator": "[parameters('localAdministrator')]",
+        "networkConnectionName": "[parameters('networkConnectionName')]",
+        "stopOnDisconnect":{
+          "status": "[parameters('stopOnDisconnectStatus')]",
+          "gracePeriodMinutes": "[parameters('stopOnDisconnectGracePeriodMinutes')]"
+        },
+        "stopOnNoConnect": {
+          "status": "[parameters('stopOnNoConnectStatus')]",
+          "gracePeriodMinutes": "[parameters('stopOnNoConnectGracePeriodMinutes')]"
+        },
+        "singleSignOnStatus": "[parameters('singleSignOnStatus')]",    
+        "displayName": "[parameters('poolName')]",
+        "virtualNetworkType": "Managed",
+        "managedVirtualNetworkRegions": "[parameters('managedVirtualNetworkRegions')]"
+    
+      }
+    }
+  ]
+}

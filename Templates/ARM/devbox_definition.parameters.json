@@ -1,0 +1,24 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "devBoxDefinitionName": {
+      "value": "VS2022WIN11"
+    },
+    "devCenterName": {
+      "value": "myDevCenter"
+    },
+    "location": {
+      "value": "swedencentral"
+    },
+    "imageReferenceName": {
+      "value": "microsoftvisualstudio_visualstudioplustools_vs-2022-ent-general-win10-m365-gen2"
+    },
+    "skuName": {
+      "value": "general_i_8c32gb256ssd_v2"
+    },
+    "hibernateSupport": {
+      "value": "Enabled"
+    }
+  }
+}
