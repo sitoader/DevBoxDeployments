@@ -1,0 +1,122 @@
+name: Deploy DevBox Infrastructure with Bicep
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      resourceGroupName:
+        description: 'Resource Group Name'
+        required: true
+      devCenterName:
+        description: 'Dev Center Name'
+        required: true
+      projectName:
+        description: 'Project Name'
+        required: true
+      location:
+        description: 'Azure Region'
+        required: true
+        default: 'eastus'
+      devBoxDefinitionName:
+        description: 'DevBox Definition Name'
+        required: true
+        default: 'VS2022WIN11'
+      poolName:
+        description: 'Pool Name'
+        required: true
+        default: 'VS2022Pool'
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AZURE_RESOURCE_GROUP: ${{ github.event.inputs.resourceGroupName }}
+  DEVCENTER_NAME: ${{ github.event.inputs.devCenterName }}
+  PROJECT_NAME: ${{ github.event.inputs.projectName }}
+  LOCATION: ${{ github.event.inputs.location }}
+  DEVBOX_DEFINITION_NAME: ${{ github.event.inputs.devBoxDefinitionName }}
+  POOL_NAME: ${{ github.event.inputs.poolName }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Create resource group if it doesn't exist
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            if [ $(az group exists --name ${{ env.AZURE_RESOURCE_GROUP }}) = false ]; then
+              az group create --name ${{ env.AZURE_RESOURCE_GROUP }} --location ${{ env.LOCATION }}
+            fi
+
+      - name: Deploy Dev Center
+        uses: azure/bicep-deploy@v2
+        with:
+          type: deployment
+          operation: create
+          name: devcenter-deployment-${{ github.run_number }}
+          template-file: .templates/Bicep/devcenter.bicep
+          parameters-file: ./Templates/Bicep/devcenter.parameters.json
+        id: devcenter-deployment
+
+      - name: Wait for Dev Center to be created
+        run: sleep 120
+
+      - name: Deploy DevBox Definition
+        uses: azure/bicep-deploy@v2
+        id: devbox-definition-deployment
+        with:
+          type: deployment
+          operation: create
+          name: devbox-definition-deployment-${{ github.run_number }}
+          resource-group-name: ${{ env.AZURE_RESOURCE_GROUP }}
+          template-file: ./Templates/Bicep/devbox_definition.bicep
+          parameters-file: ./Templates/Bicep/devbox_definition.parameters.json
+
+      - name: Deploy Dev Center Project
+        uses: azure/bicep-deploy@v2
+        id: project-deployment
+        with:
+          type: deployment
+          operation: create
+          resource-group-name: ${{ env.AZURE_RESOURCE_GROUP }}
+          template-file: ./Templates/Bicep/devcenter_project.bicep
+          parameters-file: ./Templates/Bicep/devcenter_project.parameters.json
+          name: project-deployment-${{ github.run_number }}
+
+      - name: Wait for Project to be created
+        run: sleep 60
+
+      - name: Deploy DevBox Pool
+        uses: azure/bicep-deploy@v2
+        id: devbox-pool-deployment
+        with:
+          type: deployment
+          operation: create
+          resource-group-name: ${{ env.AZURE_RESOURCE_GROUP }}
+          template-file: ./Templates/Bicep/devboxpool.bicep
+          parameters-file: ./Templates/Bicep/devboxpool.parameters.json
+          name: devbox-pool-deployment-${{ github.run_number }}
+
+      - name: Deployment summary
+        run: |
+          echo "✅ Deployment completed successfully"
+          echo "Resource Group: ${{ env.AZURE_RESOURCE_GROUP }}"
+          echo "Dev Center: ${{ env.DEVCENTER_NAME }}"
+          echo "Project: ${{ env.PROJECT_NAME }}"
+          echo "DevBox Definition: ${{ env.DEVBOX_DEFINITION_NAME }}"
+          echo "DevBox Pool: ${{ env.POOL_NAME }}"

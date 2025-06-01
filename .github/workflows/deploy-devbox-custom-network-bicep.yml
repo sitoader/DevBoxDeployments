@@ -1,0 +1,190 @@
+name: Deploy DevBox with Custom Network
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      resourceGroupName:
+        description: 'Resource Group Name'
+        required: true
+        default: 'devbox-rg'
+      vnetResourceGroupName:
+        description: 'VNet Resource Group Name'
+        required: true
+        default: ''
+      devCenterName:
+        description: 'Dev Center Name'
+        required: true
+      projectName:
+        description: 'Project Name'
+        required: true
+      location:
+        description: 'Azure Region'
+        required: true
+        default: 'swedencentral'
+      devBoxDefinitionName:
+        description: 'DevBox Definition Name'
+        required: true
+        default: 'VS2022WIN11'
+      poolName:
+        description: 'Pool Name'
+        required: true
+      vnetName:
+        description: 'Virtual Network Name'
+        required: true
+      subnetName:
+        description: 'Subnet Name'
+        required: true
+      networkConnectionName:
+        description: 'Network Connection Name'
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AZURE_RESOURCE_GROUP: ${{ github.event.inputs.resourceGroupName }}
+  VNET_RESOURCE_GROUP: ${{ github.event.inputs.vnetResourceGroupName || github.event.inputs.resourceGroupName }}
+  DEVCENTER_NAME: ${{ github.event.inputs.devCenterName }}
+  PROJECT_NAME: ${{ github.event.inputs.projectName }}
+  LOCATION: ${{ github.event.inputs.location }}
+  DEVBOX_DEFINITION_NAME: ${{ github.event.inputs.devBoxDefinitionName }}
+  POOL_NAME: ${{ github.event.inputs.poolName }}
+  VNET_NAME: ${{ github.event.inputs.vnetName }}
+  SUBNET_NAME: ${{ github.event.inputs.subnetName }}
+  NETWORK_CONNECTION_NAME: ${{ github.event.inputs.networkConnectionName }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Create resource groups if they don't exist
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Create main resource group if it doesn't exist
+            if [ $(az group exists --name ${{ env.AZURE_RESOURCE_GROUP }}) = false ]; then
+              echo "Creating main resource group: ${{ env.AZURE_RESOURCE_GROUP }}"
+              az group create --name ${{ env.AZURE_RESOURCE_GROUP }} --location ${{ env.LOCATION }}
+            fi
+            
+            # Create VNet resource group if it doesn't exist and is different from main resource group
+            if [ "${{ env.AZURE_RESOURCE_GROUP }}" != "${{ env.VNET_RESOURCE_GROUP }}" ] && [ $(az group exists --name ${{ env.VNET_RESOURCE_GROUP }}) = false ]; then
+              echo "Creating VNet resource group: ${{ env.VNET_RESOURCE_GROUP }}"
+              az group create --name ${{ env.VNET_RESOURCE_GROUP }} --location ${{ env.LOCATION }}
+            fi
+
+      # 1. Deploy Dev Center
+      - name: Deploy Dev Center
+        uses: azure/bicep-deploy@v2
+        id: devcenter-deployment
+        with:
+          type: deployment
+          operation: create
+          resource-group-name: ${{ env.AZURE_RESOURCE_GROUP }}
+          template-file: ./Templates/Bicep/devcenter.bicep
+          parameters-file: ./Templates/Bicep/devcenter.parameters.json
+          name: devcenter-deployment-${{ github.run_number }}
+
+      - name: Wait for Dev Center to be created
+        run: sleep 120
+        
+      # 2. Deploy DevBox Definition
+      - name: Deploy DevBox Definition
+        uses: azure/bicep-deploy@v2
+        id: devbox-definition-deployment
+        with:
+          type: deployment
+          operation: create
+          resource-group-name: ${{ env.AZURE_RESOURCE_GROUP }}
+          template-file: ./Templates/Bicep/devbox_definition.bicep
+          parameters-file: ./Templates/Bicep/devbox_definition.parameters.json
+          name: devbox-definition-deployment-${{ github.run_number }}
+
+      # 3. Deploy Virtual Network
+      - name: Deploy Virtual Network
+        uses: azure/bicep-deploy@v2
+        id: vnet-deployment
+        with:
+          type: deployment
+          operation: create
+          resource-group-name: ${{ env.VNET_RESOURCE_GROUP }}
+          template-file: ./Templates/Bicep/vnet_deployment.bicep
+          parameters-file: ./Templates/Bicep/vnet_deployment.parameters.json
+          name: vnet-deployment-${{ github.run_number }}
+
+      - name: Wait for Virtual Network to be created
+        run: sleep 60
+          
+      # 4. Deploy Network Connection
+      - name: Deploy Network Connection
+        uses: azure/bicep-deploy@v2
+        id: network-connection-deployment
+        with:
+          type: deployment
+          operation: create
+          resource-group-name: ${{ env.AZURE_RESOURCE_GROUP }}
+          template-file: ./Templates/Bicep/network_connection.bicep
+          parameters-file: ./Templates/Bicep/network_connection.parameters.json
+          name: network-connection-deployment-${{ github.run_number }}
+
+      - name: Wait for Network Connection to be established
+        run: sleep 90
+
+      # 5. Deploy Dev Center Project
+      - name: Deploy Dev Center Project
+        uses: azure/bicep-deploy@v2
+        id: project-deployment
+        with:
+          type: deployment
+          operation: create
+          resource-group-name: ${{ env.AZURE_RESOURCE_GROUP }}
+          template-file: ./Templates/Bicep/devcenter_project.bicep
+          parameters-file: ./Templates/Bicep/devcenter_project.parameters.json
+          name: project-deployment-${{ github.run_number }}
+
+      - name: Wait for Project to be created
+        run: sleep 60
+
+      # 6. Deploy DevBox Pool with Custom Network
+      - name: Deploy DevBox Pool with Custom Network
+        uses: azure/bicep-deploy@v2
+        id: devbox-pool-deployment
+        with:
+          type: deployment
+          operation: create
+          resource-group-name: ${{ env.AZURE_RESOURCE_GROUP }}
+          template-file: ./Templates/Bicep/devboxpool_with_custom_network.bicep
+          parameters-file: ./Templates/Bicep/devboxpool_with_custom_network.parameters.json
+          name: devbox-pool-deployment-${{ github.run_number }}
+
+      # Deployment summary
+      - name: Deployment summary
+        run: |
+          echo "✅ DevBox with Custom Network Deployment completed successfully"
+          echo ""
+          echo "📋 Deployment Summary:"
+          echo "Resource Group: ${{ env.AZURE_RESOURCE_GROUP }}"
+          echo "VNet Resource Group: ${{ env.VNET_RESOURCE_GROUP }}"
+          echo "Dev Center: ${{ env.DEVCENTER_NAME }}"
+          echo "Project: ${{ env.PROJECT_NAME }}"
+          echo "DevBox Definition: ${{ env.DEVBOX_DEFINITION_NAME }}"
+          echo "Virtual Network: ${{ env.VNET_NAME }}"
+          echo "Network Connection: ${{ env.NETWORK_CONNECTION_NAME }}"
+          echo "DevBox Pool: ${{ env.POOL_NAME }}"
+          echo ""
+          echo "🚀 Users can now create DevBoxes from the custom network pool"
