@@ -1,0 +1,7 @@
+$schema: "1.0"
+name: image-vscode
+image: microsoftwindowsdesktop_windows-ent-cpc_win11-24h2-ent-cpc-m365
+tasks:
+    - name: winget
+      parameters:
+        package:  Microsoft.VisualStudioCode
